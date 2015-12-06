@@ -708,19 +708,23 @@ hr {
 
 /* Add custom styles here */
 .section {
-  -webkit-transition: border-color 200ms ease-in 200ms;
-  -moz-transition: border-color 200ms ease-in 200ms;
-  -ms-transition: border-color 200ms ease-in 200ms;
-  -o-transition: border-color 200ms ease-in 200ms;
-  transition: border-color 200ms ease-in 200ms;
+  -webkit-transition: background-color 200ms ease-in 200ms, border-color 200ms ease-in 200ms;
+  -moz-transition: background-color 200ms ease-in 200ms, border-color 200ms ease-in 200ms;
+  -ms-transition: background-color 200ms ease-in 200ms, border-color 200ms ease-in 200ms;
+  -o-transition: background-color 200ms ease-in 200ms, border-color 200ms ease-in 200ms;
+  transition: background-color 200ms ease-in 200ms, border-color 200ms ease-in 200ms;
   padding: 5px;
   border: 1px solid rgba(255, 255, 255, 0);
   border-radius: 2px;
-  margin-bottom: 2rem; }
+  margin-bottom: 2rem;
+  background-color: rgba(255, 255, 255, 0); }
   .section:last-child {
     margin-bottom: 0; }
   .section.editable:not(.editing):hover {
     border-color: #e1e1e1; }
+  .section.locked {
+    border-color: #e1e1e1;
+    background-color: #888888; }
 
 /* MEDIA QUERIES
  * ------------------------------------------------ */

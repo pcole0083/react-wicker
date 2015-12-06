@@ -1,28 +1,50 @@
+/*eslint-env node, es6 */
+/*jshint esnext: true, node:true */
 //library imports
 import React from 'react';
 import {markdown} from 'markdown';
 //custom imports
 import * as API from '../api';
 
-class Section extends React.Component {
-    constructor(props) {
-        super(props);
+export default class Section extends React.Component {
+
+    constructor(props, context) {
+        super(props, context);
+        this.context = context;
         this.state = this.getState(props);
     }
+
+    componentDidMount(){
+        this.componentWillReceiveProps(this.props);
+    }
+
     componentWillReceiveProps(nextProps) {
         var state = this.getState(nextProps);
-        this.setState(state);
+
+        this.makeLinks(state.html, html => {
+            state.html = html;
+            this.setState(state);
+        });
     }
+
+    componentDidUpdate(prevProps, prevState) {
+        if(this.state.editing){
+            React.findDOMNode(this.refs.editor).focus();
+        }
+    }
+
 	getState = props => ({
+        locked: !!props.user && !!props.section.editor && props.user.username !== props.section.editor,
         editing: !!props.user && props.user.username === props.section.editor,
 		content: props.section.content,
         html: !!props.section.content ? markdown.toHTML(props.section.content) : ''
 	})
+
     render() {
         let content;
 
         if( this.state.editing ){
-            content = <textarea className="twelve columns" defaultValue={ this.state.content }
+            content = <textarea ref="editor" className="twelve columns" defaultValue={ this.state.content }
             onChange={this.updateContent} onBlur={this.save} />
         }
         else {
@@ -31,26 +53,39 @@ class Section extends React.Component {
 
         let classes = ['row', 'section'];
 
-        if(!!this.props.user){
-            classes.push('editable');
-        }
         if(this.state.editing){
             classes.push('editing');
+        }
+        if(!!this.props.user){
+            classes.push( this.state.locked ? 'locked' : 'editable');
         }
         
         return <section className={ classes.join(' ') } onClick={this.startEditing} >
         	{content}
         </section>;
     }
+
     startEditing = evt => {
-        if( !this.props.user || !!this.state.editing ){
-            return;
+        if(evt.target.tagName.toUpperCase() === 'A'){
+            var href = evt.target.getAttribute('href');
+
+            if( href.indexOf(window.location.origin) > 0 || href.indexOf('/page/') === 0 ){
+                evt.preventDefault();
+                var id = href.replace(window.location.origin, '').split('/')[2];
+                return this.context.router.transitionTo('page', {id: id});
+            }
         }
-        this.setState({ editing: true});
-        API.pages.child(this.props.path).update({
-            editor: this.props.user.username
-        });
+        else {
+            if( !this.props.user || !!this.state.editing || !!this.state.locked){
+                return;
+            }
+            this.setState({ editing: true});
+            API.pages.child(this.props.path).update({
+                editor: this.props.user.username
+            });
+        }
     }
+
     updateContent = evt => {
         this.setState({ content: evt.target.value });
     }
@@ -61,6 +96,25 @@ class Section extends React.Component {
             content: this.state.content || null
         });
     }
+
+    makeLinks (html, callback){
+        const anchor = /\[\[(.*)\]\]/g;
+
+        API.pages.once('value', snapshot => {
+            let pages = snapshot.exportVal();
+            let keys = Object.keys(pages);
+
+            callback(html.replace(anchor, (match, anchorText) => {
+                for(let key of keys){
+                    if(pages[key].title === anchorText.trim() ){
+                        return `<a href="/page/${key}">${anchorText}</a>`;
+                    }
+                }
+            }));
+        })
+    }
 }
 
-export default Section;
+Section.contextTypes = {
+    router: React.PropTypes.func.isRequired
+};
